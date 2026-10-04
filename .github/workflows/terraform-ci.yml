@@ -1,0 +1,53 @@
+name: Terraform CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  terraform-validation:
+    name: Terraform validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.16.4
+
+      - name: Terraform format check
+        run: terraform fmt -check -recursive
+
+      - name: Validate module and example directories
+        run: |
+          for d in \
+            terraform/modules/network \
+            terraform/modules/ingress \
+            terraform/examples/dev
+          do
+            echo "Validating $d"
+            terraform -chdir="$d" init -backend=false -input=false
+            terraform -chdir="$d" validate
+          done
+
+      - name: Run Terraform tests for modules with tests
+        run: |
+          for d in \
+            terraform/modules/network \
+            terraform/modules/ingress
+          do
+            if find "$d" -maxdepth 2 -name '*.tftest.hcl' | grep -q .; then
+              echo "Running Terraform tests in $d"
+              env -i PATH="$PATH" HOME="$(mktemp -d)" AZURE_CONFIG_DIR="$(mktemp -d)" terraform -chdir="$d" test
+            else
+              echo "No Terraform tests found in $d; skipping"
+            fi
+          done
