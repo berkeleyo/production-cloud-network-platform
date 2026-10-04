@@ -11,7 +11,7 @@ This module creates the synthetic Azure hub-and-spoke foundation used in the rep
 - hub_name, application_spoke_name: logical VNet names
 - hub_address_space, application_address_space: CIDR ranges
 - hub_subnets, application_subnets: subnet definitions, including reserved subnet protection
-- hub_nsg_rules, application_nsg_rules, app_gateway_nsg_rules: explicit NSG definitions
+- hub_nsg_rules, web_nsg_rules, api_nsg_rules, data_nsg_rules, app_gateway_nsg_rules: explicit NSG definitions
 - hub_route_tables, application_route_tables: default route examples
 - tags: synthetic metadata
 
@@ -30,14 +30,17 @@ This module creates the synthetic Azure hub-and-spoke foundation used in the rep
 
 ## Security and routing behavior
 
-- Callers provide deliberate inbound allow rules for the ordinary hub and application NSGs.
-- The module owns the final inbound deny baseline as `DenyAllInbound` at priority `4096` for those ordinary NSGs.
+- Callers provide deliberate inbound allow rules for the hub and tier NSGs.
+- The module owns the final inbound deny baseline as `DenyAllInbound` at priority `4096` for the ordinary hub, Web, API, and Data NSGs.
 - Caller-supplied rules cannot remove or replace the module-owned deny baseline; they only add more allow entries above it.
 - Inbound allow rules must stay below the module-owned deny priority; priority `4096` is reserved for the final deny baseline.
 - Reserved subnet names are enforced internally and do not inherit general default NSG or route-table associations.
-- The dedicated AppGatewaySubnet is associated only with the App Gateway-specific NSG.
+- The AppGatewaySubnet retains its dedicated App Gateway NSG.
+- Web NSG allows App Gateway -> Web on TCP 443.
+- API NSG allows Web -> API on TCP 443.
+- Data NSG allows API -> Data on TCP 5432.
 - The application default route uses a VirtualAppliance next hop to the synthetic firewall/NVA path.
-- Broad allow rules such as Internet, Any, or 0.0.0.0/0 are rejected for ordinary workload rules.
+- Broad allow rules such as Internet, Any, or 0.0.0.0/0 are rejected for ordinary tier rules.
 
 ## Notes
 

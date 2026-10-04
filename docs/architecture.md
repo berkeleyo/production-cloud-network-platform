@@ -15,8 +15,11 @@ This repository models a synthetic Azure hub-and-spoke network for local Terrafo
 ## Ingress and application design
 
 - Public HTTPS enters through the Application Gateway frontend on port 443.
-- The gateway uses WAF_v2 with autoscale minimum capacity 2.
+- App Gateway -> Web uses TCP 443.
+- Web -> API uses TCP 443.
+- API -> Data uses TCP 5432.
 - The gateway sits in a dedicated AppGatewaySubnet and does not host backend workload addresses.
+- Each application tier has its own NSG and a final module-owned `DenyAllInbound` rule at priority 4096.
 - The backend pool uses private application addresses in the workload subnets.
 
 ## Routing and egress
@@ -24,7 +27,7 @@ This repository models a synthetic Azure hub-and-spoke network for local Terrafo
 - The application spoke default route points to a future hub firewall/NVA using VirtualAppliance.
 - The route is represented as 0.0.0.0/0 -> 10.10.0.4, which is a synthetic next hop and not a deployed resource.
 - The AzureFirewallSubnet is intentionally excluded from the general hub NSG and default route-table association.
-- There is no general hub-wide default-to-Internet route in the current implementation.
+- Intra-VNet east-west traffic currently follows Azure VNet-local routing. Firewall/NVA inspection remains planned rather than implemented.
 
 ## Planned future item
 

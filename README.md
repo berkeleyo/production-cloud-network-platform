@@ -11,9 +11,14 @@ Terraform foundation implemented and locally validated, not deployed.
 - Hub VNet: 10.10.0.0/16
 - Application spoke: 10.20.0.0/16
 - Dedicated AppGatewaySubnet: 10.20.30.0/24
+- WebSubnet: 10.20.0.0/24
+- ApiSubnet: 10.20.10.0/24
+- DataSubnet: 10.20.20.0/24
+- Trust model: App Gateway -> Web : 443, Web -> API : 443, API -> Data : 5432
+- Each tier has its own NSG plus a final module-owned DenyAllInbound at priority 4096
 - Application workload default route: 0.0.0.0/0 -> VirtualAppliance at 10.10.0.4
 - AzureFirewallSubnet is reserved and not associated with the general hub NSG or default route table
-- The hub firewall/NVA resource is planned; the route models the intended future inspection path
+- East-west firewall inspection is planned rather than currently enforced
 
 ## Local validation status
 

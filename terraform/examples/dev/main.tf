@@ -71,32 +71,6 @@ module "network" {
     }
   }
 
-  hub_nsg_rules = [{
-    name                       = "AllowCustomHubIngress"
-    priority                   = 150
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "443"
-    source_address_prefix      = "10.20.0.0/16"
-    destination_address_prefix = "10.10.0.0/16"
-    description                = "Reference-only rule for hub service access."
-  }]
-
-  application_nsg_rules = [{
-    name                       = "AllowCustomAppIngress"
-    priority                   = 150
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "443"
-    source_address_prefix      = "10.20.30.0/24"
-    destination_address_prefix = "10.20.0.0/16"
-    description                = "Reference-only App Gateway backend rule."
-  }]
-
   application_route_tables = {
     "app-default" = {
       disable_bgp_route_propagation = false

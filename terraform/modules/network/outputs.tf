@@ -44,8 +44,12 @@ output "hub_subnet_route_associations" {
 }
 
 output "application_subnet_nsg_associations" {
-  description = "Map of application subnets associated with the general application NSG."
-  value       = { for key, association in azurerm_subnet_network_security_group_association.application : key => association.subnet_id }
+  description = "Map of application tier subnets associated with their dedicated NSGs."
+  value = merge(
+    { for key, association in azurerm_subnet_network_security_group_association.web : key => association.subnet_id },
+    { for key, association in azurerm_subnet_network_security_group_association.api : key => association.subnet_id },
+    { for key, association in azurerm_subnet_network_security_group_association.data : key => association.subnet_id },
+  )
 }
 
 output "app_gateway_subnet_nsg_associations" {
@@ -71,9 +75,19 @@ output "hub_nsg_id" {
   value       = azurerm_network_security_group.hub.id
 }
 
-output "application_nsg_id" {
-  description = "Resource ID of the application NSG."
-  value       = azurerm_network_security_group.application.id
+output "web_nsg_id" {
+  description = "Resource ID of the Web tier NSG."
+  value       = azurerm_network_security_group.web.id
+}
+
+output "api_nsg_id" {
+  description = "Resource ID of the API tier NSG."
+  value       = azurerm_network_security_group.api.id
+}
+
+output "data_nsg_id" {
+  description = "Resource ID of the Data tier NSG."
+  value       = azurerm_network_security_group.data.id
 }
 
 output "app_gateway_nsg_id" {
@@ -82,13 +96,23 @@ output "app_gateway_nsg_id" {
 }
 
 output "hub_nsg_rules" {
-  description = "Map of hub NSG rules keyed by rule name. This exposes the actual module-owned deny baseline and allow rules for validation tests."
+  description = "Map of hub NSG rules keyed by rule name."
   value       = { for key, rule in azurerm_network_security_rule.hub : key => rule }
 }
 
-output "application_nsg_rules" {
-  description = "Map of application NSG rules keyed by rule name. This exposes the actual module-owned deny baseline and allow rules for validation tests."
-  value       = { for key, rule in azurerm_network_security_rule.application : key => rule }
+output "web_nsg_rules" {
+  description = "Map of Web tier NSG rules keyed by rule name."
+  value       = { for key, rule in azurerm_network_security_rule.web : key => rule }
+}
+
+output "api_nsg_rules" {
+  description = "Map of API tier NSG rules keyed by rule name."
+  value       = { for key, rule in azurerm_network_security_rule.api : key => rule }
+}
+
+output "data_nsg_rules" {
+  description = "Map of Data tier NSG rules keyed by rule name."
+  value       = { for key, rule in azurerm_network_security_rule.data : key => rule }
 }
 
 output "peering_ids" {

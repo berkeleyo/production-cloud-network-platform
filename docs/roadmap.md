@@ -22,6 +22,7 @@ The repository is now in the Phase 1 Terraform foundation and local validation p
 
 ### Phase 2 — Firewall, policy, and service trust
 - Implement the firewall/NVA resource itself as a planned future item
+- Extend east-west inspection and route control beyond the current synthetic model
 - Add WAF policy and DRS 2.1 only when intentionally introduced
 - Extend backend TLS and service-to-service trust boundaries
 - Add operational telemetry and broader management-segmentation controls

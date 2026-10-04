@@ -166,8 +166,8 @@ variable "application_subnets" {
       for subnet in values(var.application_subnets) : length(subnet.address_prefixes) > 0 && alltrue([
         for cidr in subnet.address_prefixes : can(cidrhost(cidr, 0))
       ])
-    ])
-    error_message = "Each application subnet must include at least one valid CIDR prefix."
+    ]) && length(keys(var.application_subnets)) == 4 && contains(keys(var.application_subnets), "WebSubnet") && contains(keys(var.application_subnets), "ApiSubnet") && contains(keys(var.application_subnets), "DataSubnet") && contains(keys(var.application_subnets), "AppGatewaySubnet") && length(setsubtract(keys(var.application_subnets), ["WebSubnet", "ApiSubnet", "DataSubnet", "AppGatewaySubnet"])) == 0
+    error_message = "Application subnets must include exactly WebSubnet, ApiSubnet, DataSubnet, and AppGatewaySubnet; no extra spoke subnet keys are supported."
   }
 }
 
@@ -199,21 +199,31 @@ variable "hub_nsg_rules" {
           rule.priority >= 100 &&
           rule.priority < 4096 &&
           rule.priority != 100 &&
-          !contains(["*", "0.0.0.0/0", "::/0", "Internet", "Any"], rule.source_address_prefix) &&
-          !contains(["*", "0.0.0.0/0", "::/0", "Internet", "Any"], rule.destination_address_prefix) &&
+          can(cidrhost(rule.source_address_prefix, 0)) &&
+          can(cidrhost(rule.destination_address_prefix, 0)) &&
+          tonumber(split("/", rule.source_address_prefix)[1]) > 0 &&
+          tonumber(split("/", rule.destination_address_prefix)[1]) > 0 &&
+          !contains(["VirtualNetwork", "Internet", "AzureCloud", "AzureLoadBalancer", "GatewayManager", "Any", "*"], rule.source_address_prefix) &&
+          !contains(["VirtualNetwork", "Internet", "AzureCloud", "AzureLoadBalancer", "GatewayManager", "Any", "*"], rule.destination_address_prefix) &&
+          (rule.protocol == "Tcp" || rule.protocol == "Udp") &&
+          rule.source_port_range != "*" &&
+          rule.source_port_range != "0-65535" &&
+          rule.source_port_range != "1-65535" &&
           rule.destination_port_range != "*" &&
+          rule.destination_port_range != "0-65535" &&
+          rule.destination_port_range != "1-65535" &&
           rule.priority != 4096
         )
       ]) &&
       length(distinct([for rule in var.hub_nsg_rules : rule.name])) == length(var.hub_nsg_rules) &&
       length(distinct([for rule in var.hub_nsg_rules : rule.priority])) == length(var.hub_nsg_rules)
     )
-    error_message = "Hub NSG custom rules must be inbound allow rules below the module-owned DenyAllInbound priority and cannot collide with the deny baseline."
+    error_message = "Hub NSG custom rules must use narrow CIDR-based inbound Allow rules over Tcp or Udp; broad Azure trust and wildcard port ranges are rejected."
   }
 }
 
-variable "application_nsg_rules" {
-  description = "Additional deliberate allow rules for the application spoke. The module owns the final inbound deny baseline."
+variable "web_nsg_rules" {
+  description = "Additional deliberate allow rules for the Web tier. The module owns the final inbound deny baseline."
   type = list(object({
     name                       = string
     priority                   = number
@@ -231,25 +241,137 @@ variable "application_nsg_rules" {
   validation {
     condition = (
       alltrue([
-        for rule in var.application_nsg_rules : (
+        for rule in var.web_nsg_rules : (
           rule.access == "Allow" &&
           rule.direction == "Inbound" &&
           length(rule.name) > 0 &&
-          rule.name != "AllowHttpsFromAppGatewaySubnet" &&
+          rule.name != "AllowAppGatewayHttps" &&
           rule.name != "DenyAllInbound" &&
           rule.priority >= 100 &&
           rule.priority < 4096 &&
           rule.priority != 100 &&
-          !contains(["*", "0.0.0.0/0", "::/0", "Internet", "Any"], rule.source_address_prefix) &&
-          !contains(["*", "0.0.0.0/0", "::/0", "Internet", "Any"], rule.destination_address_prefix) &&
+          can(cidrhost(rule.source_address_prefix, 0)) &&
+          can(cidrhost(rule.destination_address_prefix, 0)) &&
+          tonumber(split("/", rule.source_address_prefix)[1]) > 0 &&
+          tonumber(split("/", rule.destination_address_prefix)[1]) > 0 &&
+          !contains(["VirtualNetwork", "Internet", "AzureCloud", "AzureLoadBalancer", "GatewayManager", "Any", "*"], rule.source_address_prefix) &&
+          !contains(["VirtualNetwork", "Internet", "AzureCloud", "AzureLoadBalancer", "GatewayManager", "Any", "*"], rule.destination_address_prefix) &&
+          (rule.protocol == "Tcp" || rule.protocol == "Udp") &&
+          rule.source_port_range != "*" &&
+          rule.source_port_range != "0-65535" &&
+          rule.source_port_range != "1-65535" &&
           rule.destination_port_range != "*" &&
+          rule.destination_port_range != "0-65535" &&
+          rule.destination_port_range != "1-65535" &&
           rule.priority != 4096
         )
       ]) &&
-      length(distinct([for rule in var.application_nsg_rules : rule.name])) == length(var.application_nsg_rules) &&
-      length(distinct([for rule in var.application_nsg_rules : rule.priority])) == length(var.application_nsg_rules)
+      length(distinct([for rule in var.web_nsg_rules : rule.name])) == length(var.web_nsg_rules) &&
+      length(distinct([for rule in var.web_nsg_rules : rule.priority])) == length(var.web_nsg_rules)
     )
-    error_message = "Application NSG custom rules must be inbound allow rules below the module-owned DenyAllInbound priority and cannot collide with the deny baseline."
+    error_message = "Web NSG custom rules must use narrow CIDR-based inbound Allow rules over Tcp or Udp; broad Azure trust and wildcard port ranges are rejected."
+  }
+}
+
+variable "api_nsg_rules" {
+  description = "Additional deliberate allow rules for the API tier. The module owns the final inbound deny baseline."
+  type = list(object({
+    name                       = string
+    priority                   = number
+    direction                  = string
+    access                     = string
+    protocol                   = string
+    source_port_range          = string
+    destination_port_range     = string
+    source_address_prefix      = string
+    destination_address_prefix = string
+    description                = string
+  }))
+  default = []
+
+  validation {
+    condition = (
+      alltrue([
+        for rule in var.api_nsg_rules : (
+          rule.access == "Allow" &&
+          rule.direction == "Inbound" &&
+          length(rule.name) > 0 &&
+          rule.name != "AllowWebHttps" &&
+          rule.name != "DenyAllInbound" &&
+          rule.priority >= 100 &&
+          rule.priority < 4096 &&
+          rule.priority != 100 &&
+          can(cidrhost(rule.source_address_prefix, 0)) &&
+          can(cidrhost(rule.destination_address_prefix, 0)) &&
+          tonumber(split("/", rule.source_address_prefix)[1]) > 0 &&
+          tonumber(split("/", rule.destination_address_prefix)[1]) > 0 &&
+          !contains(["VirtualNetwork", "Internet", "AzureCloud", "AzureLoadBalancer", "GatewayManager", "Any", "*"], rule.source_address_prefix) &&
+          !contains(["VirtualNetwork", "Internet", "AzureCloud", "AzureLoadBalancer", "GatewayManager", "Any", "*"], rule.destination_address_prefix) &&
+          (rule.protocol == "Tcp" || rule.protocol == "Udp") &&
+          rule.source_port_range != "*" &&
+          rule.source_port_range != "0-65535" &&
+          rule.source_port_range != "1-65535" &&
+          rule.destination_port_range != "*" &&
+          rule.destination_port_range != "0-65535" &&
+          rule.destination_port_range != "1-65535" &&
+          rule.priority != 4096
+        )
+      ]) &&
+      length(distinct([for rule in var.api_nsg_rules : rule.name])) == length(var.api_nsg_rules) &&
+      length(distinct([for rule in var.api_nsg_rules : rule.priority])) == length(var.api_nsg_rules)
+    )
+    error_message = "API NSG custom rules must use narrow CIDR-based inbound Allow rules over Tcp or Udp; broad Azure trust and wildcard port ranges are rejected."
+  }
+}
+
+variable "data_nsg_rules" {
+  description = "Additional deliberate allow rules for the Data tier. The module owns the final inbound deny baseline."
+  type = list(object({
+    name                       = string
+    priority                   = number
+    direction                  = string
+    access                     = string
+    protocol                   = string
+    source_port_range          = string
+    destination_port_range     = string
+    source_address_prefix      = string
+    destination_address_prefix = string
+    description                = string
+  }))
+  default = []
+
+  validation {
+    condition = (
+      alltrue([
+        for rule in var.data_nsg_rules : (
+          rule.access == "Allow" &&
+          rule.direction == "Inbound" &&
+          length(rule.name) > 0 &&
+          rule.name != "AllowApiPostgres" &&
+          rule.name != "DenyAllInbound" &&
+          rule.priority >= 100 &&
+          rule.priority < 4096 &&
+          rule.priority != 100 &&
+          can(cidrhost(rule.source_address_prefix, 0)) &&
+          can(cidrhost(rule.destination_address_prefix, 0)) &&
+          tonumber(split("/", rule.source_address_prefix)[1]) > 0 &&
+          tonumber(split("/", rule.destination_address_prefix)[1]) > 0 &&
+          !contains(["VirtualNetwork", "Internet", "AzureCloud", "AzureLoadBalancer", "GatewayManager", "Any", "*"], rule.source_address_prefix) &&
+          !contains(["VirtualNetwork", "Internet", "AzureCloud", "AzureLoadBalancer", "GatewayManager", "Any", "*"], rule.destination_address_prefix) &&
+          (rule.protocol == "Tcp" || rule.protocol == "Udp") &&
+          rule.source_port_range != "*" &&
+          rule.source_port_range != "0-65535" &&
+          rule.source_port_range != "1-65535" &&
+          rule.destination_port_range != "*" &&
+          rule.destination_port_range != "0-65535" &&
+          rule.destination_port_range != "1-65535" &&
+          rule.priority != 4096
+        )
+      ]) &&
+      length(distinct([for rule in var.data_nsg_rules : rule.name])) == length(var.data_nsg_rules) &&
+      length(distinct([for rule in var.data_nsg_rules : rule.priority])) == length(var.data_nsg_rules)
+    )
+    error_message = "Data NSG custom rules must use narrow CIDR-based inbound Allow rules over Tcp or Udp; broad Azure trust and wildcard port ranges are rejected."
   }
 }
 
