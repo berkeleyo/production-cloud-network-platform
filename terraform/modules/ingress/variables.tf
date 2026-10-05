@@ -112,6 +112,17 @@ variable "tls" {
   }
 }
 
+variable "log_analytics_workspace_id" {
+  description = "Synthetic Log Analytics workspace resource ID used for diagnostic settings modeling."
+  type        = string
+  default     = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-synth-platform-dev/providers/Microsoft.OperationalInsights/workspaces/law-synth-platform"
+
+  validation {
+    condition     = length(trimspace(var.log_analytics_workspace_id)) > 0
+    error_message = "log_analytics_workspace_id must not be empty."
+  }
+}
+
 variable "tags" {
   description = "Synthetic tags used for reference-only infrastructure metadata."
   type        = map(string)

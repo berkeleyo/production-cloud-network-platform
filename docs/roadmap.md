@@ -12,6 +12,7 @@ The repository is now in the Phase 1 Terraform foundation and local validation p
 - Enforce explicit NSG and route defaults for workload traffic
 - Keep the Application Gateway WAF_v2 and HTTPS-only model in scope
 - Implement the dedicated Application Gateway WAF policy with Microsoft Default Rule Set 2.1 in the Terraform configuration
+- Model backend HTTPS/TLS trust and Application Gateway diagnostics in the synthetic Terraform configuration
 - Use mock_provider so Terraform tests remain offline and credential-free
 
 ### Phase 1 validation
@@ -25,8 +26,8 @@ The repository is now in the Phase 1 Terraform foundation and local validation p
 - Implement the firewall/NVA resource itself as a planned future item
 - Extend east-west inspection and route control beyond the current synthetic model
 - Keep dedicated WAF policy and DRS 2.1 as implemented Terraform controls, not live-deployed controls
-- Extend backend TLS and service-to-service trust boundaries
-- Add operational telemetry and broader management-segmentation controls
+- Keep backend HTTPS/TLS trust and diagnostics synthetic and non-deployed
+- Add broader management-segmentation controls
 
 ### Phase 3 — Portfolio polish
 - Tighten narrative grounding and architecture documentation

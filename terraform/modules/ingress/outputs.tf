@@ -38,6 +38,22 @@ output "ssl_policy_name" {
   value       = azurerm_application_gateway.platform.ssl_policy[0].policy_name
 }
 
+output "application_gateway_backend_hostname" {
+  description = "The backend host name used by the Application Gateway HTTPS settings."
+  value       = one(azurerm_application_gateway.platform.backend_http_settings).host_name
+}
+
+output "backend_trusted_root_certificate_name" {
+  description = "The synthetic trusted-root certificate used for backend HTTPS validation."
+  value       = one(azurerm_application_gateway.platform.trusted_root_certificate).name
+  sensitive   = true
+}
+
+output "application_gateway_diagnostic_setting_name" {
+  description = "The diagnostic setting name for the Application Gateway."
+  value       = azurerm_monitor_diagnostic_setting.application_gateway.name
+}
+
 output "application_gateway_waf_enabled" {
   description = "Whether the Application Gateway resource is associated with an enabled WAF policy."
   value       = azurerm_application_gateway.platform.firewall_policy_id != null && var.waf_enabled

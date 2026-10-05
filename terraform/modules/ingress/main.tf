@@ -46,12 +46,22 @@ resource "azurerm_application_gateway" "platform" {
   }
 
   backend_http_settings {
-    name                  = "https-settings"
-    cookie_based_affinity = "Disabled"
-    port                  = var.backend_port
-    protocol              = "Https"
-    request_timeout       = 60
-    probe_name            = "backend-health"
+    name                                 = "https-settings"
+    cookie_based_affinity                = "Disabled"
+    port                                 = var.backend_port
+    protocol                             = "Https"
+    request_timeout                      = 60
+    probe_name                           = "backend-health"
+    host_name                            = var.backend_host
+    sni_name                             = var.backend_host
+    sni_validation_enabled               = true
+    certificate_chain_validation_enabled = true
+    trusted_root_certificate_names       = ["backend-root-synthetic"]
+  }
+
+  trusted_root_certificate {
+    name = "backend-root-synthetic"
+    data = base64encode("synthetic-backend-root-ca")
   }
 
   ssl_certificate {
@@ -139,5 +149,23 @@ resource "azurerm_web_application_firewall_policy" "platform" {
     rate_limit_threshold = 25
     rate_limit_duration  = "OneMin"
     group_rate_limit_by  = "ClientAddr"
+  }
+}
+
+resource "azurerm_monitor_diagnostic_setting" "application_gateway" {
+  name                       = "diag-${var.name}"
+  target_resource_id         = azurerm_application_gateway.platform.id
+  log_analytics_workspace_id = var.log_analytics_workspace_id
+
+  enabled_log {
+    category = "ApplicationGatewayAccessLog"
+  }
+
+  enabled_log {
+    category = "ApplicationGatewayFirewallLog"
+  }
+
+  enabled_metric {
+    category = "AllMetrics"
   }
 }

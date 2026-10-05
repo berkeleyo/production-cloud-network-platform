@@ -45,5 +45,5 @@ This module defines the synthetic public ingress layer for the project. It model
 - This module is reference-only and offline; no live Azure deployment has occurred.
 - The Terraform configuration contains a dedicated Application Gateway WAF policy with Microsoft Default Rule Set 2.1 enabled.
 - The default WAF mode is Prevention, and the synthetic login endpoint is represented by a request path rate-limit example for /api/login.
+- Backend HTTPS/TLS trust is represented in Terraform through the gateway hostname, SNI alignment, HTTPS health probe, and a synthetic trusted-root certificate model; it has not been deployed or live-tested.
 - The design intentionally keeps the model synthetic and does not claim live attack blocking or production telemetry.
-- Backend TLS remains outside the current scope and is not treated as a fully implemented service-to-service trust boundary yet.

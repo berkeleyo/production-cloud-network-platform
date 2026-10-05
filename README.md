@@ -1,38 +1,56 @@
 # production-cloud-network-platform
 
-Synthetic Azure networking reference built as a portfolio-grade Terraform foundation. This repository models a hub-and-spoke design, a dedicated App Gateway subnet, and a planned future firewall/NVA inspection path without deploying any live Azure resources.
+Synthetic Azure networking reference built for portfolio review and offline Terraform validation. This repository models a hub-and-spoke platform foundation with Application Gateway + WAF ingress, tiered application segmentation, and an explicit 0.0.0.0/0 VirtualAppliance egress path without deploying any live Azure resources.
 
-## Current status
+## Architecture snapshot
 
-Terraform foundation implemented and locally validated, not deployed.
+```mermaid
+flowchart LR
+    Internet --> AGW[App Gateway<br/>AppGatewaySubnet]
+    AGW --> WAF[WAF Policy<br/>Prevention default]
+    AGW --> Web[WebSubnet]
+    Web --> API[ApiSubnet]
+    API --> Data[DataSubnet]
+    Web --> Egress[0.0.0.0/0 -> VirtualAppliance<br/>10.10.0.4]
+    Hub[Hub VNet / AzureFirewallSubnet reserved] --> Egress
+```
 
-## Architecture summary
+## What this demonstrates
 
-- Hub VNet: 10.10.0.0/16
-- Application spoke: 10.20.0.0/16
-- Dedicated AppGatewaySubnet: 10.20.30.0/24
-- WebSubnet: 10.20.0.0/24
-- ApiSubnet: 10.20.10.0/24
-- DataSubnet: 10.20.20.0/24
-- Trust model: App Gateway -> Web : 443, Web -> API : 443, API -> Data : 5432
-- Each tier has its own NSG plus a final module-owned DenyAllInbound at priority 4096
-- Application workload default route: 0.0.0.0/0 -> VirtualAppliance at 10.10.0.4
-- AzureFirewallSubnet is reserved and not associated with the general hub NSG or default route table
-- East-west firewall inspection is planned rather than currently enforced
+- Application Gateway + WAF ingress using Azure Application Gateway v2 and WAF_v2
+- Application tier segmentation: Web, API, and Data with explicit trust boundaries
+- Default egress intent via 0.0.0.0/0 -> VirtualAppliance while keeping the firewall/NVA resource synthetic
+- Backend HTTPS trust modelling with a deterministic synthetic root certificate and SNI-aligned probe config
+- Application Gateway diagnostics are modelled to send access/WAF logs and metrics to a synthetic Log Analytics workspace resource ID; no real telemetry has been collected
+- Offline Terraform validation through mock_provider and empty Azure config isolation
 
-## Local validation status
+## Security model
 
-Validated locally without Azure authentication or deployment:
+- App Gateway sits in its own AppGatewaySubnet and is separated from the workload subnets.
+- WAF is attached to the gateway and defaults to Prevention, with Detection supported for validation.
+- Web -> API is limited to HTTPS on 443; API -> Data is limited to PostgreSQL on 5432.
+- Each tier keeps a final module-owned DenyAllInbound rule at priority 4096.
+- East-west firewall inspection is represented as a planned path, not a live resource deployment.
 
-- Terraform format check successful
-- terraform init -backend=false successful for the network module, ingress module, and dev example
-- terraform validate successful for the final local configuration
-- terraform test successful with offline Azure config isolation and no Azure CLI credentials used
+## Validation and testing
 
-## Project disclaimer
+- `terraform fmt`
+- `terraform init -backend=false`
+- `terraform validate`
+- `terraform test`
+- All execution remains offline using `mock_provider` and empty `AZURE_CONFIG_DIR` with no ARM_* values or Azure CLI auth.
 
-This project is independently designed for portfolio use and is not a live Azure deployment, an approved production topology, or a customer environment. All values are synthetic and intended for architecture review and Terraform validation only.
+## Current vs planned / simulated
+
+| Status | Scope |
+| --- | --- |
+| Current | Hub-and-spoke network, App Gateway ingress, WAF policy, route model, synthetic east-west routing intent |
+| Planned / simulated | Azure Firewall/NVA resource, live inspection path, real telemetry, production-grade tuning |
+
+## Limitations
+
+This repository is intentionally synthetic and non-deploying; it is designed for architecture review, Terraform validation, and portfolio presentation rather than production operations.
 
 ## Roadmap
 
-See [docs/roadmap.md](docs/roadmap.md) for the implementation phases reflected in this repository.
+See [docs/roadmap.md](docs/roadmap.md) and [docs/architecture.md](docs/architecture.md) for the implemented and intentionally planned scope.

@@ -4,14 +4,15 @@ run "valid_ingress_module" {
   command = plan
 
   variables {
-    resource_group_name    = "rg-synth-platform-dev"
-    location               = "uksouth"
-    subnet_id              = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-synth-platform-dev/providers/Microsoft.Network/virtualNetworks/vnet-synth-app/subnets/AppGatewaySubnet"
-    backend_pool_addresses = ["10.20.0.10", "10.20.10.10"]
-    backend_port           = 443
-    backend_host           = "app.internal.synthetic"
-    health_path            = "/health"
-    frontend_port          = 443
+    resource_group_name        = "rg-synth-platform-dev"
+    location                   = "uksouth"
+    subnet_id                  = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-synth-platform-dev/providers/Microsoft.Network/virtualNetworks/vnet-synth-app/subnets/AppGatewaySubnet"
+    backend_pool_addresses     = ["10.20.0.10", "10.20.10.10"]
+    backend_port               = 443
+    backend_host               = "app.internal.synthetic"
+    health_path                = "/health"
+    frontend_port              = 443
+    log_analytics_workspace_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-synth-platform-dev/providers/Microsoft.OperationalInsights/workspaces/law-synth-platform"
     tls = {
       name     = "simulated-platform-cert"
       data     = base64encode("synthetic-platform-cert-data")
@@ -137,6 +138,59 @@ run "valid_ingress_module" {
   assert {
     condition     = output.waf_policy.custom_rules[0].group_rate_limit_by == "ClientAddr"
     error_message = "Expected the synthetic rate-limit rule to group per client address."
+  }
+
+  assert {
+    condition     = output.application_gateway_backend_hostname == "app.internal.synthetic"
+    error_message = "Expected the Application Gateway backend HTTPS settings to align to the synthetic host name."
+  }
+
+  assert {
+    condition     = output.backend_trusted_root_certificate_name == "backend-root-synthetic"
+    error_message = "Expected the synthetic root trust model to configure a dedicated backend root certificate."
+  }
+
+  assert {
+    condition     = output.application_gateway_diagnostic_setting_name == "diag-agw-synth-platform"
+    error_message = "Expected the Application Gateway diagnostic setting to use the synthetic default name."
+  }
+}
+
+run "application_gateway_diagnostics_target_and_categories" {
+  command = plan
+
+  variables {
+    resource_group_name        = "rg-synth-platform-dev"
+    subnet_id                  = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-synth-platform-dev/providers/Microsoft.Network/virtualNetworks/vnet-synth-app/subnets/AppGatewaySubnet"
+    log_analytics_workspace_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-synth-platform-dev/providers/Microsoft.OperationalInsights/workspaces/law-synth-platform"
+    tls = {
+      name     = "simulated-platform-cert"
+      data     = base64encode("synthetic-platform-cert-data")
+      password = "replace-with-synthetic-password"
+    }
+  }
+
+  override_resource {
+    target = azurerm_application_gateway.platform
+    values = {
+      id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-synth-platform-dev/providers/Microsoft.Network/applicationGateways/agw-synth-platform-override"
+    }
+    override_during = plan
+  }
+
+  assert {
+    condition     = azurerm_monitor_diagnostic_setting.application_gateway.target_resource_id == "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-synth-platform-dev/providers/Microsoft.Network/applicationGateways/agw-synth-platform-override"
+    error_message = "Expected the Application Gateway diagnostic setting to target the overridden gateway resource ID."
+  }
+
+  assert {
+    condition     = length(azurerm_monitor_diagnostic_setting.application_gateway.enabled_log) == 2 && contains([for entry in azurerm_monitor_diagnostic_setting.application_gateway.enabled_log : entry.category], "ApplicationGatewayAccessLog") && contains([for entry in azurerm_monitor_diagnostic_setting.application_gateway.enabled_log : entry.category], "ApplicationGatewayFirewallLog")
+    error_message = "Expected the gateway diagnostics to include the synthetic access and firewall log categories."
+  }
+
+  assert {
+    condition     = length(azurerm_monitor_diagnostic_setting.application_gateway.enabled_metric) == 1 && contains([for entry in azurerm_monitor_diagnostic_setting.application_gateway.enabled_metric : entry.category], "AllMetrics")
+    error_message = "Expected the gateway diagnostics to include the synthetic AllMetrics category."
   }
 }
 
