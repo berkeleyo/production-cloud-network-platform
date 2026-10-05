@@ -42,6 +42,8 @@ This module defines the synthetic public ingress layer for the project. It model
 
 ## Notes
 
-- This module is reference-only and offline; it does not deploy to Azure.
-- WAF policy/DRS 2.1 remains Phase 2 and is not implemented in this Phase 1 scope.
-- Backend TLS remains Phase 2 and is not treated as a fully implemented service-to-service trust boundary yet.
+- This module is reference-only and offline; no live Azure deployment has occurred.
+- The Terraform configuration contains a dedicated Application Gateway WAF policy with Microsoft Default Rule Set 2.1 enabled.
+- The default WAF mode is Prevention, and the synthetic login endpoint is represented by a request path rate-limit example for /api/login.
+- The design intentionally keeps the model synthetic and does not claim live attack blocking or production telemetry.
+- Backend TLS remains outside the current scope and is not treated as a fully implemented service-to-service trust boundary yet.

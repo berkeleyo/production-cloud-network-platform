@@ -133,13 +133,46 @@ variable "waf_enabled" {
   }
 }
 
+variable "waf_policy_name" {
+  description = "Logical name of the dedicated Azure WAF policy."
+  type        = string
+  default     = "waf-synth-platform"
+
+  validation {
+    condition     = length(trimspace(var.waf_policy_name)) > 0
+    error_message = "waf_policy_name must not be empty."
+  }
+}
+
 variable "waf_mode" {
-  description = "WAF mode used in a reference configuration."
+  description = "Operational mode for the dedicated Azure WAF policy."
   type        = string
   default     = "Prevention"
 
   validation {
     condition     = contains(["Detection", "Prevention"], var.waf_mode)
     error_message = "waf_mode must be Detection or Prevention."
+  }
+}
+
+variable "waf_max_request_body_size_in_kb" {
+  description = "Maximum request body size inspected by the Azure WAF policy."
+  type        = number
+  default     = 128
+
+  validation {
+    condition     = var.waf_max_request_body_size_in_kb > 0 && var.waf_max_request_body_size_in_kb <= 1024
+    error_message = "waf_max_request_body_size_in_kb must be greater than zero and within a conservative Azure WAF limit."
+  }
+}
+
+variable "waf_file_upload_limit_in_mb" {
+  description = "Maximum file upload size inspected by the Azure WAF policy."
+  type        = number
+  default     = 100
+
+  validation {
+    condition     = var.waf_file_upload_limit_in_mb > 0 && var.waf_file_upload_limit_in_mb <= 5000
+    error_message = "waf_file_upload_limit_in_mb must be greater than zero and within a sensible Azure WAF limit."
   }
 }

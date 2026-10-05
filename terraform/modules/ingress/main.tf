@@ -94,13 +94,50 @@ resource "azurerm_application_gateway" "platform" {
     priority                   = 100
   }
 
-  waf_configuration {
-    enabled                  = true
-    firewall_mode            = var.waf_mode
-    rule_set_type            = "OWASP"
-    rule_set_version         = "3.2"
-    request_body_check       = true
-    max_request_body_size_kb = 128
-    file_upload_limit_mb     = 100
+  firewall_policy_id = azurerm_web_application_firewall_policy.platform.id
+}
+
+resource "azurerm_web_application_firewall_policy" "platform" {
+  name                = var.waf_policy_name
+  resource_group_name = var.resource_group_name
+  location            = var.location
+  tags                = var.tags
+
+  policy_settings {
+    enabled                     = var.waf_enabled
+    mode                        = var.waf_mode
+    request_body_check          = true
+    max_request_body_size_in_kb = var.waf_max_request_body_size_in_kb
+    file_upload_limit_in_mb     = var.waf_file_upload_limit_in_mb
+  }
+
+  managed_rules {
+    managed_rule_set {
+      type    = "Microsoft_DefaultRuleSet"
+      version = "2.1"
+    }
+  }
+
+  custom_rules {
+    name      = "SyntheticLoginRateLimit"
+    priority  = 100
+    rule_type = "RateLimitRule"
+    action    = "Block"
+    enabled   = true
+
+    match_conditions {
+      match_variables {
+        variable_name = "RequestUri"
+      }
+
+      operator           = "BeginsWith"
+      negation_condition = false
+      match_values       = ["/api/login"]
+      transforms         = ["Lowercase"]
+    }
+
+    rate_limit_threshold = 25
+    rate_limit_duration  = "OneMin"
+    group_rate_limit_by  = "ClientAddr"
   }
 }

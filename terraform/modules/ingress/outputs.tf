@@ -39,6 +39,26 @@ output "ssl_policy_name" {
 }
 
 output "application_gateway_waf_enabled" {
-  description = "Whether the Application Gateway resource itself has WAF enabled."
-  value       = azurerm_application_gateway.platform.waf_configuration[0].enabled
+  description = "Whether the Application Gateway resource is associated with an enabled WAF policy."
+  value       = azurerm_application_gateway.platform.firewall_policy_id != null && var.waf_enabled
+}
+
+output "waf_policy_id" {
+  description = "Resource ID of the dedicated Azure WAF policy."
+  value       = azurerm_web_application_firewall_policy.platform.id
+}
+
+output "waf_policy_name" {
+  description = "Resource name of the dedicated Azure WAF policy."
+  value       = azurerm_web_application_firewall_policy.platform.name
+}
+
+output "waf_policy_mode" {
+  description = "Configured operating mode for the dedicated Azure WAF policy."
+  value       = azurerm_web_application_firewall_policy.platform.policy_settings[0].mode
+}
+
+output "waf_policy" {
+  description = "The generated dedicated Azure WAF policy resource for offline validation and assertions."
+  value       = azurerm_web_application_firewall_policy.platform
 }
