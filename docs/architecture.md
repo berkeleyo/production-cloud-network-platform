@@ -2,28 +2,62 @@
 
 ## Current implementation
 
-This repository models a synthetic Azure hub-and-spoke platform for offline Terraform validation and portfolio review. The design is intentionally narrow and is not a live Azure deployment.
+This repository models a synthetic Azure hub-and-spoke platform for offline Terraform validation and portfolio review. It is not a live Azure deployment and does not provision a production firewall/NVA resource.
 
-## Decision summary
+## Network topology
 
-- App Gateway placement: public ingress is handled by a dedicated application gateway subnet that sits in the application spoke and keeps the gateway out of the workload tier.
-- WAF boundary: the Application Gateway is fronted by a dedicated WAF policy in Prevention mode by default, with Detection supported for validation and tuning.
-- Tier segmentation: workload traffic is separated into Web, API, and Data tiers with explicit trust paths: App Gateway -> Web on 443, Web -> API on 443, and API -> Data on 5432.
-- Egress strategy: the workload default route is 0.0.0.0/0 -> VirtualAppliance at 10.10.0.4, which models a future hub firewall/NVA inspection path without deploying the actual resource.
-- East-west routing: intra-application traffic is routed through Azure VNet-local paths while the security inspection hop is represented synthetically rather than enforced by a deployed firewall resource.
-- TLS trust: backend HTTPS is modeled with a synthetic hostname, SNI alignment, and a trusted-root certificate object so the trust boundary is explicit without embedding live certificates or secrets.
-- Offline status: every module is intentionally validated without Azure credentials, ARM_* values, or live apply actions.
+- A public Application Gateway provides the HTTPS ingress boundary.
+- The Application Gateway is placed in a dedicated `AppGatewaySubnet` inside the application VNet.
+- The application spoke is segmented into Web, API and Data subnets.
+- A hub VNet contains reserved firewall, shared-services, management and gateway subnets.
+- Hub/application VNets are represented with bidirectional peering.
+- NSGs and route tables are modeled as Terraform resources and associations.
 
-## Address plan
+## Trust boundaries
 
-- Hub VNet: 10.10.0.0/16
-- Application spoke: 10.20.0.0/16
-- Application tier subnets: 10.20.0.0/24, 10.20.10.0/24, 10.20.20.0/24
-- Dedicated AppGatewaySubnet: 10.20.30.0/24
-- AzureFirewallSubnet: 10.10.0.0/24 (reserved for the synthetic firewall/NVA path)
+- Internet → public Application Gateway
+- Application Gateway → Web tier on HTTPS 443
+- Web tier → API tier on HTTPS 443
+- API tier → Data tier on PostgreSQL 5432
+- Application spoke → reserved NVA inspection boundary on the synthetic default route
+
+## Implemented controls
+
+- Dedicated WAF_v2 Application Gateway policy
+- TLS listener and HTTPS backend settings
+- Module-owned `DenyAllInbound` baseline in tier NSGs
+- Explicit caller allow rules
+- Reserved subnet protection
+- Dedicated App Gateway NSG
+- VNet peering
+- Synthetic route-table default toward `10.10.0.4`
+- Native Terraform module tests with the mock provider
+
+## Planned components
+
+The following remain architectural intent only:
+
+- Azure Firewall or NVA deployment
+- Live east-west inspection enforcement
+- Real monitoring/workspace integration
+- Production certificate provisioning
+- Real public DNS and application endpoints
+- Remote backend/state management
 
 ## Module boundaries
 
-- Network module: VNet, subnets, NSGs, route tables, peering, and association logic
-- Ingress module: public IP, WAF_v2 Application Gateway, WAF policy, backend HTTPS trust, and diagnostic settings
-- Example composition: local dev reference for Terraform composition and validation
+- `terraform/modules/network` owns VNets, subnets, NSGs, route tables and peering.
+- `terraform/modules/ingress` owns public IP, Application Gateway, WAF policy and diagnostic settings.
+- `terraform/examples/dev` demonstrates module composition.
+
+## Operational assumptions
+
+- The repository does not authenticate to Azure.
+- Terraform tests use `mock_provider` and isolated Azure configuration directories.
+- No `terraform apply` workflow is included.
+- The CIDRs are legitimate private-network architecture examples, not real infrastructure addresses.
+- State is local-only unless a consumer supplies a controlled backend externally.
+
+## Trade-offs
+
+The repository deliberately trades live Azure fidelity for deterministic review and offline validation. This makes the repository useful for architecture, module design and policy testing, but it does not prove live Azure behavior or operational readiness.

@@ -16,7 +16,7 @@ run "valid_ingress_module" {
     tls = {
       name     = "simulated-platform-cert"
       data     = base64encode("synthetic-platform-cert-data")
-      password = "replace-with-synthetic-password"
+      password = "synthetic-password-placeholder"
     }
   }
 
@@ -166,7 +166,7 @@ run "application_gateway_diagnostics_target_and_categories" {
     tls = {
       name     = "simulated-platform-cert"
       data     = base64encode("synthetic-platform-cert-data")
-      password = "replace-with-synthetic-password"
+      password = "synthetic-password-placeholder"
     }
   }
 
@@ -204,7 +204,7 @@ run "detection_mode_policy" {
     tls = {
       name     = "simulated-platform-cert"
       data     = base64encode("synthetic-platform-cert-data")
-      password = "replace-with-synthetic-password"
+      password = "synthetic-password-placeholder"
     }
   }
 
@@ -223,7 +223,7 @@ run "waf_policy_wiring_regression" {
     tls = {
       name     = "simulated-platform-cert"
       data     = base64encode("synthetic-platform-cert-data")
-      password = "replace-with-synthetic-password"
+      password = "synthetic-password-placeholder"
     }
   }
 
@@ -251,7 +251,7 @@ run "rejects_invalid_waf_mode" {
     tls = {
       name     = "simulated-platform-cert"
       data     = base64encode("synthetic-platform-cert-data")
-      password = "replace-with-synthetic-password"
+      password = "synthetic-password-placeholder"
     }
   }
 
@@ -267,7 +267,7 @@ run "rejects_invalid_tls" {
     tls = {
       name     = "simulated-platform-cert"
       data     = "not-base64-data"
-      password = "replace-with-synthetic-password"
+      password = "synthetic-password-placeholder"
     }
   }
 
@@ -284,7 +284,7 @@ run "rejects_http_frontend_port" {
     tls = {
       name     = "simulated-platform-cert"
       data     = base64encode("synthetic-platform-cert-data")
-      password = "replace-with-synthetic-password"
+      password = "synthetic-password-placeholder"
     }
   }
 
