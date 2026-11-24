@@ -1,34 +1,36 @@
 # Roadmap
 
-## Current phase
-
-The repository is now in the Phase 1 Terraform foundation and local validation phase. The project remains synthetic and non-deploying by design.
-
 ## Implemented
 
-### Phase 1 — Foundation and guardrails
-- Define the synthetic Azure hub-and-spoke reference model
-- Model the dedicated AppGatewaySubnet and reserved firewall subnets
-- Enforce explicit NSG and route defaults for workload traffic
-- Keep the Application Gateway WAF_v2 and HTTPS-only model in scope
-- Implement the dedicated Application Gateway WAF policy with Microsoft Default Rule Set 2.1 in the Terraform configuration
-- Model backend HTTPS/TLS trust and Application Gateway diagnostics in the synthetic Terraform configuration
-- Use mock_provider so Terraform tests remain offline and credential-free
-
-### Phase 1 validation
-- Add native terraform tests for route, subnet, and ingress checks
-- Run validation with empty AZURE_CONFIG_DIR and throwaway HOME values
-- Keep CI in place without referencing removed modules
+- Synthetic Azure hub-and-spoke foundation
+- App Gateway WAF_v2 ingress model
+- Dedicated Web, API and Data subnets
+- Module-owned NSG deny baselines
+- Explicit route-table modeling
+- VNet peering
+- Reserved firewall/NVA subnet boundary
+- Backend HTTPS/SNI trust model
+- Synthetic diagnostic settings
+- Native Terraform mock-provider tests
+- GitHub Actions Terraform validation
 
 ## Planned
 
-### Phase 2 — Firewall, policy, and service trust
-- Implement the firewall/NVA resource itself as a planned future item
-- Extend east-west inspection and route control beyond the current synthetic model
-- Keep dedicated WAF policy and DRS 2.1 as implemented Terraform controls, not live-deployed controls
-- Keep backend HTTPS/TLS trust and diagnostics synthetic and non-deployed
-- Add broader management-segmentation controls
+- A future concrete firewall/NVA module
+- East-west traffic-inspection implementation
+- Stronger management-segment controls
+- Optional remote state examples
+- Environment-specific variable and backend examples
+- Additional scanner integration
+- Live-deployment documentation with explicit approval boundaries
 
-### Phase 3 — Portfolio polish
-- Tighten narrative grounding and architecture documentation
-- Keep the implementation aligned with the actual Terraform scope
+## Out of scope
+
+- Live Azure deployment
+- Real certificate or credential handling examples
+- Production state backend configuration
+- Live WAF tuning
+- Live telemetry collection
+- Kubernetes
+- Provider mutation automation
+- AI-driven infrastructure remediation

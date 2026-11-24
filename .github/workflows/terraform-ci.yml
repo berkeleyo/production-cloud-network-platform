@@ -46,7 +46,7 @@ jobs:
           do
             if find "$d" -maxdepth 2 -name '*.tftest.hcl' | grep -q .; then
               echo "Running Terraform tests in $d"
-              env -i PATH="$PATH" HOME="$(mktemp -d)" AZURE_CONFIG_DIR="$(mktemp -d)" terraform -chdir="$d" test
+              env HOME="$(mktemp -d)" AZURE_CONFIG_DIR="$(mktemp -d)" terraform -chdir="$d" test
             else
               echo "No Terraform tests found in $d; skipping"
             fi

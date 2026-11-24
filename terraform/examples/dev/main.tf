@@ -101,7 +101,7 @@ module "ingress" {
   tls = {
     name     = "simulated-platform-cert"
     data     = base64encode("synthetic-platform-cert-data")
-    password = "replace-with-synthetic-password"
+    password = "synthetic-password-placeholder"
   }
 
   waf_enabled = true
